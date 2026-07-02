@@ -134,3 +134,44 @@ graph TD
 - **Environment Safety**: Credentials like the Anthropic API keys are loaded via server-side environment configurations (`.env`) and never exposed to client-side files.
 - **Graceful Fallbacks**: If connection failures occur with external LLM pipelines, specialized local agents resolve queries locally using relational indices.
 - **Production Builds**: Built with TypeScript compilation guidelines (`tsc && vite build`) for deployment on Vercel, Netlify, or AWS Amplify.
+
+---
+
+## 🌐 Production Deployment & Redeployment
+
+### Step-by-Step Hosting Instructions
+
+This app is configured to be deployed with **Vercel** (for frontend) and **Render** (for backend):
+
+1. **Push to GitHub**:
+   Push the files to a new GitHub repository on your account.
+2. **Deploy Backend (Render)**:
+   - Create a new **Web Service** pointing to your repository.
+   - Set **Root Directory** to `server`.
+   - Set **Build Command** to `npm install` and **Start Command** to `npm start`.
+   - Add environment variables:
+     - `CLAUDE_API_KEY`: Your Anthropic API Key.
+     - `FRONTEND_URL`: Your Vercel frontend URL (e.g., `https://your-app.vercel.app`).
+3. **Deploy Frontend (Vercel)**:
+   - Import your repository.
+   - Set **Root Directory** to `client`.
+   - Add environment variable:
+     - `VITE_API_URL`: Your Render backend URL (e.g., `https://your-backend.onrender.com`).
+4. **Link CORS**: Update the `FRONTEND_URL` environment variable on Render to match your Vercel domain.
+
+### 🔄 How to Redeploy Future Code Changes
+
+Both Vercel and Render are integrated directly with Git for **Continuous Deployment**. When you make code modifications:
+
+1. Commit and push your changes to the `main` branch of your GitHub repository:
+   ```bash
+   git add .
+   git commit -m "Describe your update"
+   git push origin main
+   ```
+2. Render and Vercel will automatically detect the new commit, build the updated code in the background, and redeploy the live website with zero downtime.
+
+### 💻 Local Development Remains Intact
+Running local development retains the exact same workflow as before. The proxy configurations are preserved:
+- Simply run `npm run dev` at the root folder to boot both services locally at once.
+
