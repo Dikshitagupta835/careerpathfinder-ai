@@ -17,9 +17,9 @@ async function testNewSdk() {
     const ai = new GoogleGenAI({ apiKey });
     console.log('Initializing client...');
     
-    console.log('Calling generateContent with model: gemini-3.5-flash...');
+    console.log('Calling generateContent with model: gemini-2.5-flash...');
     const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
+      model: 'gemini-2.5-flash',
       contents: 'Hello! Please output "Success" and nothing else.',
     });
 

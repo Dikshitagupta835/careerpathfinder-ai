@@ -19,7 +19,7 @@ const mockProfile = {
 };
 
 async function test() {
-  console.log("Running orchestrateCareerQuery test with gemini-3.5-flash...");
+  console.log("Running orchestrateCareerQuery test with gemini-2.5-flash...");
   try {
     const result = await orchestrateCareerQuery(mockProfile, "Compare Chartered Accountant vs CFA.");
     console.log("\n=================== TEST RESULT ===================");

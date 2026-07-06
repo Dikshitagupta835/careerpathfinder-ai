@@ -6,7 +6,7 @@ const apiKey = process.env.GEMINI_API_KEY || '';
 const ai     = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 if (ai) {
-  console.log('[AI] Gemini 3.5 Flash initialised — AI mode ACTIVE');
+  console.log('[AI] Gemini 2.5 Flash initialised — AI mode ACTIVE');
 } else {
   console.warn('[AI] No GEMINI_API_KEY found — running in Demo (local) mode');
 }
@@ -25,13 +25,13 @@ const callLLM = async (systemPrompt, userPrompt, tracker) => {
     return null;
   }
 
-  const maxRetries = 2;
+  const maxRetries = 3;
   const combinedPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const result = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.5-flash',
         contents: combinedPrompt
       });
       let text = result.text;
@@ -45,17 +45,24 @@ const callLLM = async (systemPrompt, userPrompt, tracker) => {
       if (tracker) tracker.successCount = (tracker.successCount || 0) + 1;
       return text;
     } catch (e) {
-      console.warn(`[Gemini] Attempt ${attempt} failed:`, e?.message || e);
+      const msg = e?.message || String(e);
+      console.warn(`[Gemini] Attempt ${attempt}/${maxRetries} failed: ${msg.slice(0, 120)}`);
 
-      const is503 = e?.message?.includes('503') || 
-                    e?.message?.toLowerCase().includes('overloaded') || 
-                    e?.message?.toLowerCase().includes('service unavailable') ||
-                    e?.status === 503 ||
-                    e?.statusCode === 503;
+      const is503 = msg.includes('503') ||
+                    msg.toLowerCase().includes('overloaded') ||
+                    msg.toLowerCase().includes('service unavailable') ||
+                    msg.toLowerCase().includes('unavailable') ||
+                    e?.status === 503 || e?.statusCode === 503;
 
-      if (is503 && attempt < maxRetries) {
-        console.log(`[Gemini] Encountered 503/overload error. Retrying in 1.5s...`);
-        await new Promise(resolve => setTimeout(resolve, 1500));
+      const is429 = msg.includes('429') ||
+                    msg.toLowerCase().includes('quota') ||
+                    msg.toLowerCase().includes('rate limit') ||
+                    e?.status === 429 || e?.statusCode === 429;
+
+      if ((is503 || is429) && attempt < maxRetries) {
+        const waitMs = is429 ? 3000 : 2000;
+        console.log(`[Gemini] Transient error (${is429 ? '429 rate-limit' : '503 overload'}). Waiting ${waitMs}ms then retry ${attempt + 1}/${maxRetries}...`);
+        await new Promise(resolve => setTimeout(resolve, waitMs));
         continue;
       }
 
@@ -63,6 +70,10 @@ const callLLM = async (systemPrompt, userPrompt, tracker) => {
       return null;
     }
   }
+
+  // All retries exhausted
+  if (tracker) tracker.failCount = (tracker.failCount || 0) + 1;
+  return null;
 };
 
 
