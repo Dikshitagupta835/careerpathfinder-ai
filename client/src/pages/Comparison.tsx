@@ -61,29 +61,31 @@ function toComparisonEntry(c: CareerEntry) {
 export const Comparison: React.FC = () => {
   const [allCareers, setAllCareers] = useState<ReturnType<typeof toComparisonEntry>[]>([]);
   const [loading, setLoading]       = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [searchVal, setSearchVal]   = useState('');
   const [streamFilter, setStreamFilter] = useState('All');
   const [selectedIds, setSelectedIds]   = useState<string[]>([]);
 
-  // ── Fetch all careers from backend ────────────────────────────────────────
+  // ── Fetch all careers directly from /api/careers (no AI required) ─────────
   useEffect(() => {
     const fetchCareers = async () => {
       try {
         setLoading(true);
+        setFetchError(null);
         const res = await fetch('/api/careers');
-        if (!res.ok) throw new Error('Failed to load careers');
+        if (!res.ok) throw new Error(`Server error ${res.status}: ${res.statusText}`);
         const data: CareerEntry[] = await res.json();
         setAllCareers(data.map(toComparisonEntry));
-      } catch (err) {
+      } catch (err: any) {
         console.error('Careers fetch error:', err);
-        // Provide a minimal fallback to avoid broken UI
-        setAllCareers([]);
+        setFetchError(err?.message || 'Could not load career database. Is the server running?');
       } finally {
         setLoading(false);
       }
     };
     fetchCareers();
-  }, []);
+  }, [retryCount]);
 
   const categories = useMemo(() => {
     const cats = Array.from(new Set(allCareers.map(c => c.category)));
@@ -137,6 +139,28 @@ export const Comparison: React.FC = () => {
         <div className="flex flex-col items-center gap-3 text-slate-400">
           <Loader2 size={32} className="animate-spin text-indigo-500" />
           <p className="text-sm font-medium">Loading career database…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="flex-1 flex items-center justify-center h-full">
+        <div className="flex flex-col items-center gap-4 text-center max-w-sm">
+          <div className="w-14 h-14 rounded-full bg-rose-500/10 flex items-center justify-center">
+            <BrainCircuit size={28} className="text-rose-500" />
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm">Could not load Career Database</h3>
+            <p className="text-xs text-slate-400 mt-1">{fetchError}</p>
+          </div>
+          <button
+            onClick={() => setRetryCount(c => c + 1)}
+            className="px-5 py-2 bg-indigo-500 text-white text-xs font-bold rounded-xl hover:bg-indigo-600 transition"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );

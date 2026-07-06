@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { GlassCard } from '../components/GlassCard';
 import { EmptyState } from '../components/EmptyState';
 import { 
-  GraduationCap, Search, Grid, Map as MapIcon, Heart, Compass, Loader2, SlidersHorizontal
+  GraduationCap, Search, Grid, Map as MapIcon, Heart, Compass, Loader2, SlidersHorizontal, AlertCircle
 } from 'lucide-react';
 
 interface College {
@@ -42,6 +42,8 @@ export const CollegeExplorer: React.FC = () => {
   const { savedColleges, toggleSaveCollege } = useApp();
   const [colleges, setColleges]         = useState<College[]>([]);
   const [loading, setLoading]           = useState(true);
+  const [fetchError, setFetchError]     = useState<string | null>(null);
+  const [retryCount, setRetryCount]     = useState(0);
   const [searchVal, setSearchVal]       = useState('');
   const [countryFilter, setCountryFilter] = useState('All');
   const [streamFilter, setStreamFilter]   = useState('All');
@@ -55,19 +57,21 @@ export const CollegeExplorer: React.FC = () => {
     const fetchColleges = async () => {
       try {
         setLoading(true);
+        setFetchError(null);
         const res = await fetch('/api/colleges');
-        if (!res.ok) throw new Error('Failed to load colleges');
+        if (!res.ok) throw new Error(`Server error ${res.status}: ${res.statusText}`);
         const data: College[] = await res.json();
         setColleges(data);
         if (data.length > 0) setSelectedCollegeId(data[0].id);
-      } catch (err) {
+      } catch (err: any) {
         console.error('College fetch error:', err);
+        setFetchError(err?.message || 'Could not load college database. Is the server running?');
       } finally {
         setLoading(false);
       }
     };
     fetchColleges();
-  }, []);
+  }, [retryCount]);
 
   const handleSave = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -101,6 +105,29 @@ export const CollegeExplorer: React.FC = () => {
         <div className="flex flex-col items-center gap-3 text-slate-400">
           <Loader2 size={32} className="animate-spin text-indigo-500" />
           <p className="text-sm font-medium">Loading {colleges.length > 0 ? colleges.length : ''} colleges…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Error state ────────────────────────────────────────────────────
+  if (fetchError) {
+    return (
+      <div className="flex-1 flex items-center justify-center h-full">
+        <div className="flex flex-col items-center gap-4 text-center max-w-sm">
+          <div className="w-14 h-14 rounded-full bg-rose-500/10 flex items-center justify-center">
+            <AlertCircle size={28} className="text-rose-500" />
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm">Could not load College Database</h3>
+            <p className="text-xs text-slate-400 mt-1">{fetchError}</p>
+          </div>
+          <button
+            onClick={() => setRetryCount(c => c + 1)}
+            className="px-5 py-2 bg-indigo-500 text-white text-xs font-bold rounded-xl hover:bg-indigo-600 transition"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );

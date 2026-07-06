@@ -191,40 +191,23 @@ app.post('/api/auth/logout', authenticateToken, (req, res) => {
   res.json({ success: true });
 });
 
-// Career data — supports query filters: category, stream, difficulty, search, maxAiRisk, minFutureDemand, interests
+// Career data — simple, direct API endpoint reading directly from careers.json
 app.get('/api/careers', (req, res) => {
   try {
-    const query = {};
-    if (req.query.category) query.category = req.query.category;
-    if (req.query.stream) query.stream = req.query.stream;
-    if (req.query.difficulty) query.difficulty = req.query.difficulty;
-    if (req.query.search) query.search = req.query.search;
-    if (req.query.maxAiRisk !== undefined) query.maxAiRisk = parseFloat(req.query.maxAiRisk);
-    if (req.query.minFutureDemand !== undefined) query.minFutureDemand = parseFloat(req.query.minFutureDemand);
-    if (req.query.interests) query.interests = Array.isArray(req.query.interests) ? req.query.interests : [req.query.interests];
-    const careers = tools.careerSearchTool(query);
-    res.json(careers);
+    const careersPath = path.join(__dirname, 'data', 'careers.json');
+    const careersData = JSON.parse(fs.readFileSync(careersPath, 'utf8'));
+    res.json(careersData);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// College data — supports query filters: country, city, stream, course, search, maxBudget, type, minRating, minPlacementRate, scholarshipsAvailable
+// College data — simple, direct API endpoint reading directly from colleges.json
 app.get('/api/colleges', (req, res) => {
   try {
-    const query = {};
-    if (req.query.country) query.country = req.query.country;
-    if (req.query.city) query.city = req.query.city;
-    if (req.query.stream) query.stream = req.query.stream;
-    if (req.query.course) query.course = req.query.course;
-    if (req.query.search) query.search = req.query.search;
-    if (req.query.maxBudget !== undefined) query.maxBudget = parseFloat(req.query.maxBudget);
-    if (req.query.type) query.type = req.query.type;
-    if (req.query.minRating !== undefined) query.minRating = parseFloat(req.query.minRating);
-    if (req.query.minPlacementRate !== undefined) query.minPlacementRate = parseFloat(req.query.minPlacementRate);
-    if (req.query.scholarshipsAvailable) query.scholarshipsAvailable = true;
-    const colleges = tools.collegeSearchTool(query);
-    res.json(colleges);
+    const collegesPath = path.join(__dirname, 'data', 'colleges.json');
+    const collegesData = JSON.parse(fs.readFileSync(collegesPath, 'utf8'));
+    res.json(collegesData);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -25,27 +25,43 @@ const callLLM = async (systemPrompt, userPrompt, tracker) => {
     return null;
   }
 
-  try {
-    // Combine system + user prompt into one prompt string for Gemini
-    const combinedPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
-    const result = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
-      contents: combinedPrompt
-    });
-    let text = result.text;
+  const maxRetries = 2;
+  const combinedPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
 
-    // Strip markdown code-fences (```json … ``` or ``` … ```)
-    text = text.trim();
-    if (text.startsWith('```')) {
-      text = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await ai.models.generateContent({
+        model: 'gemini-3.5-flash',
+        contents: combinedPrompt
+      });
+      let text = result.text;
+
+      // Strip markdown code-fences (```json … ``` or ``` … ```)
+      text = text.trim();
+      if (text.startsWith('```')) {
+        text = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+      }
+
+      if (tracker) tracker.successCount = (tracker.successCount || 0) + 1;
+      return text;
+    } catch (e) {
+      console.warn(`[Gemini] Attempt ${attempt} failed:`, e?.message || e);
+
+      const is503 = e?.message?.includes('503') || 
+                    e?.message?.toLowerCase().includes('overloaded') || 
+                    e?.message?.toLowerCase().includes('service unavailable') ||
+                    e?.status === 503 ||
+                    e?.statusCode === 503;
+
+      if (is503 && attempt < maxRetries) {
+        console.log(`[Gemini] Encountered 503/overload error. Retrying in 1.5s...`);
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        continue;
+      }
+
+      if (tracker) tracker.failCount = (tracker.failCount || 0) + 1;
+      return null;
     }
-
-    if (tracker) tracker.successCount = (tracker.successCount || 0) + 1;
-    return text;
-  } catch (e) {
-    console.warn('[Gemini] API call failed:', e?.message || e);
-    if (tracker) tracker.failCount = (tracker.failCount || 0) + 1;
-    return null;
   }
 };
 
