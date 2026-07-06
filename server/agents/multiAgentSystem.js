@@ -1,12 +1,11 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import * as tools from '../tools/mcpTools.js';
 
 // ── Gemini client initialisation ──────────────────────────────────────────
 const apiKey = process.env.GEMINI_API_KEY || '';
-const genAI  = apiKey ? new GoogleGenerativeAI(apiKey) : null;
-const model  = genAI  ? genAI.getGenerativeModel({ model: 'gemini-3.5-flash' }) : null;
+const ai     = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
-if (model) {
+if (ai) {
   console.log('[AI] Gemini 3.5 Flash initialised — AI mode ACTIVE');
 } else {
   console.warn('[AI] No GEMINI_API_KEY found — running in Demo (local) mode');
@@ -21,7 +20,7 @@ if (model) {
  * Strips markdown code-fences from the response so JSON.parse() always works.
  */
 const callLLM = async (systemPrompt, userPrompt, tracker) => {
-  if (!model) {
+  if (!ai) {
     if (tracker) tracker.failCount = (tracker.failCount || 0) + 1;
     return null;
   }
@@ -29,8 +28,11 @@ const callLLM = async (systemPrompt, userPrompt, tracker) => {
   try {
     // Combine system + user prompt into one prompt string for Gemini
     const combinedPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
-    const result = await model.generateContent(combinedPrompt);
-    let text = result.response.text();
+    const result = await ai.models.generateContent({
+      model: 'gemini-3.5-flash',
+      contents: combinedPrompt
+    });
+    let text = result.text;
 
     // Strip markdown code-fences (```json … ``` or ``` … ```)
     text = text.trim();

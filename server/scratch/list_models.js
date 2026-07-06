@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 async function listAllModels() {
-  const apiKey = process.env.GEMINI_API_KEY || 'AIzaSyDcFadynfVY9tOY0hw9a4BuAqlLLYNI05Y';
+  const apiKey = process.env.GEMINI_API_KEY;
   const genAI = new GoogleGenerativeAI(apiKey);
   
   try {
